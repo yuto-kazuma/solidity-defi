@@ -1,60 +1,103 @@
-# Solidity DeFi
+<div align="center">
 
-This project is a simple lending/borrow protocol.
+<img src="assets/banner.png" alt="Solidity DeFi - Lending Protocol" width="100%" />
 
-## Introduction
+<h1>Solidity DeFi - Lending &amp; Borrowing Protocol</h1>
 
-### How it works
-Depositors can deposit DAI into the protocol's lending pool and receive bDAI (interest bearing DAI) in return. Subsequent the protocol deposits that amount of DAI inside AAVE Lending Pool to earn interest while waits a borrower or a depositor to withdraw.
+<p><b>A minimal, transparent on-chain lending protocol in Solidity: deposit ETH to earn yield, borrow against it up to 80% LTV, with automated liquidation and a usage-based interest-rate model.</b></p>
 
-Borrowers can deposit ether as collateral and borrow DAI up to 80% of its collateral value. When the value of the borrow surpass 80% of its collateral value, liquidation occurs.
+<p>
+  <img src="https://img.shields.io/badge/Solidity-363636?style=flat-square&logo=solidity&logoColor=white" alt="Solidity" />
+  <img src="https://img.shields.io/badge/Hardhat-FFF100?style=flat-square&logo=hardhat&logoColor=black" alt="Hardhat" />
+  <img src="https://img.shields.io/badge/Ethers.js-2535A0?style=flat-square&logo=ethers&logoColor=white" alt="Ethers.js" />
+  <img src="https://img.shields.io/badge/OpenZeppelin-4E5EE4?style=flat-square&logo=openzeppelin&logoColor=white" alt="OpenZeppelin" />
+  <img src="https://img.shields.io/badge/Chainlink-375BD2?style=flat-square&logo=chainlink&logoColor=white" alt="Chainlink" />
+</p>
 
-**Note: The ether deposited as collateral is also deposited into AAVE's lending pool to earn interest*.
+</div>
 
-The protocol also has a reserve, this reserve receives all the interest of the deposits and collateral from AAVE's lending pool, and every time a lend is paid, the interest of the lending goes here.
+---
 
-Liquidation occurs every time the borrowed value if higher than 80% of the collateral's value.
-The ether liquidated is swapped for DAI using Uniswap and that value goes to the reserve.
+## Overview
 
-The protocols fees is calculated based on a variable call utilization ratio.
+Most lending protocols are powerful but hard to reason about. **Solidity DeFi** is a compact implementation of the core mechanics - interest-bearing deposits, collateralized borrowing, liquidation, and a reserve - so the moving parts are easy to read and study.
 
-![utilization](https://user-images.githubusercontent.com/19571883/156420444-5765ef4b-5964-4cd0-9166-4e8f4a3217f1.png)
+Depositors supply ETH and receive **bEther**, a yield-bearing token. Under the hood, deposited ETH is routed into **Aave** to earn interest while it waits to be borrowed or withdrawn. Borrowers post collateral and can borrow up to **80% LTV**; if a position crosses that threshold, it is liquidated - the collateral is swapped via **Uniswap** and the proceeds flow to the protocol reserve.
 
-There's another variable called interest multiplier, this variable is used to calculate the borrow rate.
+> Built for study/research. The economic model is inspired by Compound and Anchor and is intentionally simplified.
 
-![interest](https://user-images.githubusercontent.com/19571883/156421094-61a6a2f0-38a5-42ff-90f4-62d4ad2c1ec9.png)
+## How It Works
 
-This indicators makes rates variable based on protocol usage.
-When the protocol has a lower utilization ratio, it lower the deposit/borrow rate to attract more borrowers than depositors.
-When the portocol usage is high, it increase the borrow/deposit rates, to attract deposits and drive borrowers away.
+- **Deposit** - supply ETH, receive interest-bearing `bEther`
+- **Yield routing** - underlying ETH is deposited into Aave's lending pool to earn interest
+- **Borrow** - use `bEther` as collateral and borrow up to **80% LTV**
+- **Liquidation** - positions above the LTV limit are liquidated; collateral is swapped to stable value via Uniswap into the reserve
+- **Reserve** - accrues a share of interest, acting as the protocol's safety buffer
+- **Interest-rate model** - borrow/deposit rates flex with the **utilization ratio**: low usage lowers rates to attract borrowers; high usage raises them to attract deposits
 
-Borrow rate formula:
+### Exchange rate
 
-![borrow](https://user-images.githubusercontent.com/19571883/156422249-720a7c42-83c6-44f2-9762-23fbad29f93f.png)
+```
+exchangeRate = (getCash() + totalBorrows() - totalReserves()) / totalSupply()
+```
 
-Deposit rate formula:
+Each `bEther` becomes redeemable for an increasing amount of ETH as interest accrues.
 
-![deposit](https://user-images.githubusercontent.com/19571883/156422277-84540016-fe1e-4913-b322-f2d4901178bf.png)
+## Contracts
 
-Each bDAI is convertible into a increasing quantity of DAI as interest accrues, the exchange rate between bDAI and DAI is calculated using this formula:
+| File | Responsibility |
+| --- | --- |
+| `contracts/BondToken.sol` | Core lending logic - deposits, borrows, collateral, liquidation, reserve, `bEther` (ERC-20) |
+| `contracts/Math.sol` | Fixed-point math helpers for rates and exchange-rate calculations |
+| `contracts/interfaces/ISwapRouter.sol` | Uniswap swap-router interface used for liquidation |
 
-![exchangeRate](https://user-images.githubusercontent.com/19571883/156422758-12e88999-80b1-49fd-a625-375640340e94.png)
+**Integrations:** OpenZeppelin (`ERC20Burnable`, `Ownable`), Aave (`ILendingPool`, `IWETHGateway`), Uniswap (`ISwapRouter`), Chainlink (`AggregatorV3Interface` price feeds).
 
-**Note: this formulas is inspired by Anchor protocol and Compound, this way is no sustainable, was made for study purposes only.*
+## Tech Stack
 
-## Getting started
+`Solidity ^0.8.7` · `Hardhat` · `TypeScript` · `Ethers.js` · `OpenZeppelin` · `Aave` · `Uniswap` · `Chainlink`
 
-Rename the ``.env.example`` file to ``.env`` and replace the credentials necessary.
+## Getting Started
 
-**Note: the addresses are hardcoded on the contract for kovan testnet, if you want to deploy in another testnet or even deploy to mainnet, make sure to change the addresses on the contract* 
-## Instaling
-``$ npm install``
+### Prerequisites
 
-## Testing
+- Node.js and npm
+- An Ethereum RPC/testnet endpoint and a funded testnet account
 
-``$ npm test``
-### Deploy
-``npm run deploy`` 
-### Verify contract
-``npm run verify "CONTRACT ADDRESS"``
+### Install
 
+```bash
+git clone https://github.com/yuto-kazuma/solidity-defi.git
+cd solidity-defi
+npm install
+cp .env.example .env   # add your RPC URL, private key, and Etherscan key
+```
+
+### Test
+
+```bash
+npm test          # runs the Hardhat test suite (gas report enabled)
+```
+
+### Deploy &amp; Verify
+
+```bash
+npm run deploy                       # deploy to the configured network
+npm run verify "<CONTRACT_ADDRESS>"  # verify on Etherscan
+```
+
+> The external addresses (Aave, Uniswap, WETH gateway) are configured for a testnet. Update them in the contract before deploying to another network.
+
+## Disclaimer
+
+This code is for educational and research purposes only. It has not been audited and is not intended for production or mainnet use. Interacting with DeFi contracts carries financial risk.
+
+## License
+
+See repository for license details.
+
+---
+
+<div align="center">
+  <sub>Built by <a href="https://github.com/yuto-kazuma">Yuto Kazuma</a> · <a href="https://yuto-kazuma.vercel.app/">Portfolio</a></sub>
+</div>
